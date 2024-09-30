@@ -34,7 +34,7 @@ Workshop #2
 ### Визуализация изменения параметра и возможности улучшения
 
 образом, и данные находились в линейной зависимости. Данные преобразуются в формат массива, чтобы их можно было вычислить напрямую при использовании умножения и сложения.
-```In [ ]:
+```python
 #Import the required modules, numpy for calculation, and Matplotlib for drawing
 import numpy as np
 import matplotlib.pyplot as plt
