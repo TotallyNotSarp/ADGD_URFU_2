@@ -34,7 +34,7 @@ Workshop #2
 ### Визуализация изменения параметра и возможности улучшения
 
 образом, и данные находились в линейной зависимости. Данные преобразуются в формат массива, чтобы их можно было вычислить напрямую при использовании умножения и сложения.
-In [ ]:
+```In [ ]:
 #Import the required modules, numpy for calculation, and Matplotlib for drawing
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,6 +49,7 @@ y = np.array(y)
 
 #Show the effect of a scatter plot
 plt.scatter(x,y)
+```
 Определите связанные функции. Функция модели: определяет модель линейной регрессии wx+b. Функция потерь: функция потерь
 
 ![Снимок экрана 2024-09-22 150731](https://github.com/user-attachments/assets/ae71babb-08eb-4ffd-a0a1-d692e99f1f9f)
