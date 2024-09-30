@@ -32,33 +32,140 @@ Workshop #2
 
 ## Задание 2
 ### Визуализация изменения параметра и возможности улучшения
+Ход работы:
+- С помощью python и google-sheets создали таблицу с генератором значений
 
-образом, и данные находились в линейной зависимости. Данные преобразуются в формат массива, чтобы их можно было вычислить напрямую при использовании умножения и сложения.
 ```python
-#Import the required modules, numpy for calculation, and Matplotlib for drawing
+import gspread
 import numpy as np
-import matplotlib.pyplot as plt
-#This code is for jupyter Notebook only
-%matplotlib inline
+gc = gspread.service_account(filename='unitydatascience-437209-0ed8706a4920.json')
+sh = gc.open("UnityDataScience")
+options = [-10, -10, 1, 2, 3, 4, 10]
+hp = 30
+hp_cap = 30
+mon = list(range(1,20))
+i = 2
+sh.sheet1.update(('A' + str(i)), int(i-1))
+sh.sheet1.update(('B' + str(i)), int(hp))
+sh.sheet1.update(('C' + str(i)), int(hp_cap))
+while i <= len(mon):
+    i += 1
+    if i == 0:
+        continue
+    else:
+        value = np.random.randint(0, 7)
+        if options[value] == options[-1]:
+            hp_cap += options[-1]
 
-# define data, and change list to array
-x = [3,21,22,34,54,34,55,67,89,99]
-x = np.array(x)
-y = [2,22,24,65,79,82,55,130,150,199]
-y = np.array(y)
+        if not(hp + options[value] >= hp_cap):
+            hp += options[value]
+            
+        sh.sheet1.update(('A' + str(i)), int(i-1))
+        sh.sheet1.update(('B' + str(i)), int(hp))
+        sh.sheet1.update(('C' + str(i)), int(hp_cap))
 
-#Show the effect of a scatter plot
-plt.scatter(x,y)
+        if hp <= 0:
+            break
 ```
-Определите связанные функции. Функция модели: определяет модель линейной регрессии wx+b. Функция потерь: функция потерь
 
-![Снимок экрана 2024-09-22 150731](https://github.com/user-attachments/assets/ae71babb-08eb-4ffd-a0a1-d692e99f1f9f)
+- Визуализировали данные
+  
+![image](https://github.com/user-attachments/assets/3e5e2d2e-058b-40b1-9daf-fdd4541fcf58)
+
+- Основываясь на игровом опыте, хочу сказать, что часто возникают ситуации, когда игрока зажимает толпа врагов. В таком случае враги атакуют одновременно и способны почти мгновенно убить игрока/нанести большой урон. Возможное решение - добавить кадры неуязвимости. Также навык вампиризм на высоких уровнях способен очень сильно восполнять здоровье, что сказывается на балансе.
 
 ## Задание 3
-### Какую сущность(и) мы бы могли "обучить" ML-Agent-ом для того чтобы создать более качественный игровой опыт?
+### Отображение данных в Unity
 
-- В игре "СПАСТИ РТФ: выживание" подходящими сущностями для обучения ML-Agent-ом являются враги, так как сейчас их поведение слишком прямолинейно (идут на игрока, проходя сквозь препятствия). Обучение врагов навигации по карте значительно улучшить игровой опыт.
+- Настроили в Unity отображение параметра с помощью скрипта, включающего звуки и выводящего надписи в консоль
+
+```cs
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Networking;
+using SimpleJSON;
+
+public class NewBehaviourScript : MonoBehaviour
+{
+    public AudioClip _goodSpeak;
+    public AudioClip _normalSpeak;
+    public AudioClip _badSpeak;
+    private AudioSource _selectAudioSource;
+    private Dictionary<string, HPInfo> _dataSet = new Dictionary<string, HPInfo>();
+    private int i = 1;
+
+    void Start()
+    {
+        _selectAudioSource = GetComponent<AudioSource>();
+        StartCoroutine(GoogleSheets());
+        InvokeRepeating("TryPlaySound", 1f, 1f);
+    }
+
+    private void TryPlaySound()
+    {
+        if (i == _dataSet.Count)
+            return;
+
+        int currentHP = _dataSet["Mon_" + i.ToString()].CurrentHp;
+        int maxHP = _dataSet["Mon_" + i.ToString()].MaxHP;
+
+        if (currentHP <= 0) 
+            Debug.Log("DEAD");
+        else if (currentHP <= maxHP / 3)
+        {
+            Debug.Log($"Low HP: {currentHP}/{maxHP}");
+            PlaySelectAudioSound(_badSpeak);
+        }
+        else if (currentHP <= (maxHP / 3) * 2)
+        {
+            Debug.Log($"Normal HP: {currentHP}/{maxHP}");
+            PlaySelectAudioSound(_normalSpeak);
+        }
+        else
+        {
+            Debug.Log($"High HP: {currentHP}/{maxHP}");
+            PlaySelectAudioSound(_goodSpeak);
+        }
+    }
+
+    IEnumerator GoogleSheets()
+    {
+        UnityWebRequest curentResp = UnityWebRequest.Get("https://sheets.googleapis.com/v4/spreadsheets/1CC4lHQhWVai8IR3ik3DjRkcffFUwOtfzPiiQSztpmbQ/values/List1?key=AIzaSyCLFOWoJ1PpLWuEwr2Lsq581acM7jzseBk");
+        yield return curentResp.SendWebRequest();
+        string rawResp = curentResp.downloadHandler.text;
+        var rawJson = JSON.Parse(rawResp);
+        foreach (var itemRawJson in rawJson["values"])
+        {
+            var parseJson = JSON.Parse(itemRawJson.ToString());
+            var selectRow = parseJson[0].AsStringList;
+            _dataSet.Add(("Mon_" + selectRow[0]), new HPInfo(int.Parse(selectRow[1]), int.Parse(selectRow[2])));
+        }
+    }
+
+    private void PlaySelectAudioSound(AudioClip clip)
+    {
+        _selectAudioSource.clip = clip;
+        _selectAudioSource.Play();
+        i++;
+    }
+}
+
+public struct HPInfo
+{
+    public HPInfo(int current, int max)
+    {
+        CurrentHp = current;
+        MaxHP = max;
+    }
+
+    public int CurrentHp;
+    public int MaxHP;
+}
+```
+
+![Снимок экрана 2024-09-30 181651](https://github.com/user-attachments/assets/f7b3d8b1-0dd3-4bf2-853e-24600679db9d)
 
 ## Выводы
 
-- Установили программы, необходимые для обучения ML-агентов и познакомились с ними. Нашли применение ML-агентам в реальных проектах.
+- Подключили Google таблицы к Unity и научились обрабатывать полученные данные.
